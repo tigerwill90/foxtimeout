@@ -1,3 +1,10 @@
+// Copyright 2023 Sylvain Müller. All rights reserved.
+// Mount of this source code is governed by a MIT license that can be found
+// at https://github.com/tigerwill90/foxtimeout/blob/master/LICENSE.txt.
+//
+// This package is based on the Go standard library, see the LICENSE file
+// at https://github.com/golang/go/blob/master/LICENSE.
+
 package foxtimeout
 
 import (

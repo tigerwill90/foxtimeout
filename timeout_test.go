@@ -1,3 +1,7 @@
+// Copyright 2023 Sylvain Müller. All rights reserved.
+// Mount of this source code is governed by a MIT license that can be found
+// at https://github.com/tigerwill90/foxtimeout/blob/master/LICENSE.txt.
+
 package foxtimeout
 
 import (
