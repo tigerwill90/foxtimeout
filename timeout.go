@@ -57,7 +57,7 @@ func New(dt time.Duration, opts ...Option) *Timeout {
 // the handler responds with a 503 Service Unavailable error and the given message in its body (if a custom response
 // handler is not configured). After such a timeout, writes by next to its ResponseWriter will return http.ErrHandlerTimeout.
 //
-// Timeout supports the Pusher interface but does not support the Hijacker or Flusher interfaces.
+// Timeout supports the http.Pusher interface but does not support the http.Hijacker or http.Flusher interfaces.
 func (t *Timeout) Timeout(next fox.HandlerFunc) fox.HandlerFunc {
 	if t.dt <= 0 {
 		return func(c fox.Context) {

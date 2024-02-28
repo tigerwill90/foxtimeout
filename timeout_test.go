@@ -95,3 +95,16 @@ func TestMiddleware_NoTimeout(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.Equal(t, fmt.Sprintf("%s\n", http.StatusText(http.StatusCreated)), w.Body.String())
 }
+
+func TestMiddleware_ErrNotSupported(t *testing.T) {
+	f := fox.New(fox.WithMiddleware(Middleware(1 * time.Second)))
+	f.MustHandle(http.MethodGet, "/foo", func(c fox.Context) {
+		assert.ErrorIs(t, c.Writer().FlushError(), http.ErrNotSupported)
+		_, _, hijErr := c.Writer().Hijack()
+		assert.ErrorIs(t, hijErr, http.ErrNotSupported)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/foo", nil)
+	w := httptest.NewRecorder()
+	f.ServeHTTP(w, req)
+}

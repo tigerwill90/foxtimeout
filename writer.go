@@ -8,16 +8,30 @@
 package foxtimeout
 
 import (
+	"bufio"
 	"bytes"
+	"fmt"
 	"github.com/tigerwill90/fox"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"path"
 	"sync"
 )
 
-var _ http.Pusher = (*timeoutWriter)(nil)
+var _ fox.ResponseWriter = (*timeoutWriter)(nil)
+
+var copyBufPool = sync.Pool{
+	New: func() any {
+		b := make([]byte, 32*1024)
+		return &b
+	},
+}
+
+type onlyWrite struct {
+	io.Writer
+}
 
 type timeoutWriter struct {
 	w       fox.ResponseWriter
@@ -59,10 +73,7 @@ func (tw *timeoutWriter) WriteString(s string) (int, error) {
 }
 
 func (tw *timeoutWriter) Push(target string, opts *http.PushOptions) error {
-	if pusher, ok := tw.w.(http.Pusher); ok {
-		return pusher.Push(target, opts)
-	}
-	return http.ErrNotSupported
+	return tw.w.Push(target, opts)
 }
 
 func (tw *timeoutWriter) Header() http.Header {
@@ -102,4 +113,25 @@ func (tw *timeoutWriter) WriteHeader(code int) {
 	tw.mu.Lock()
 	defer tw.mu.Unlock()
 	tw.writeHeaderLocked(code)
+}
+
+func (tw *timeoutWriter) ReadFrom(src io.Reader) (n int64, err error) {
+	bufPtr := copyBufPool.Get().(*[]byte)
+	buf := *bufPtr
+	// onlyWrite hide "ReadFrom" from w.
+	n, err = io.CopyBuffer(onlyWrite{tw}, src, buf)
+	copyBufPool.Put(bufPtr)
+	return
+}
+
+func (tw *timeoutWriter) FlushError() error {
+	return errNotSupported()
+}
+
+func (tw *timeoutWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return nil, nil, errNotSupported()
+}
+
+func errNotSupported() error {
+	return fmt.Errorf("%w", http.ErrNotSupported)
 }
