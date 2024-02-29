@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/stretchr/testify v1.8.4
-	github.com/tigerwill90/fox v0.11.0
+	github.com/tigerwill90/fox v0.13.0
 )
 
 require (
