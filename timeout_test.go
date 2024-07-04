@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/tigerwill90/fox"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -66,7 +68,7 @@ func panicResponse(c fox.Context) {
 func TestMiddleware_WithPanic(t *testing.T) {
 	f := fox.New(
 		fox.WithMiddleware(
-			fox.Recovery(func(c fox.Context, err any) {
+			fox.CustomRecoveryWithLogHandler(slog.NewTextHandler(io.Discard, nil), func(c fox.Context, err any) {
 				if !c.Writer().Written() {
 					http.Error(c.Writer(), http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				}
