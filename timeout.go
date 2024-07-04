@@ -67,7 +67,7 @@ func (t *Timeout) Timeout(next fox.HandlerFunc) fox.HandlerFunc {
 
 	return func(c fox.Context) {
 
-		ctx, cancel := context.WithTimeout(c.Ctx(), t.dt)
+		ctx, cancel := context.WithTimeout(c.Request().Context(), t.dt)
 		defer cancel()
 
 		for _, f := range t.cfg.filters {
