@@ -71,7 +71,7 @@ func (t *Timeout) Timeout(next fox.HandlerFunc) fox.HandlerFunc {
 		defer cancel()
 
 		for _, f := range t.cfg.filters {
-			if !f(c.Request()) {
+			if f(c.Request()) {
 				next(c)
 				return
 			}

@@ -10,7 +10,6 @@ package foxtimeout
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"github.com/tigerwill90/fox"
 	"io"
 	"log"
@@ -18,6 +17,7 @@ import (
 	"net/http"
 	"path"
 	"sync"
+	"time"
 )
 
 var _ fox.ResponseWriter = (*timeoutWriter)(nil)
@@ -125,13 +125,17 @@ func (tw *timeoutWriter) ReadFrom(src io.Reader) (n int64, err error) {
 }
 
 func (tw *timeoutWriter) FlushError() error {
-	return errNotSupported()
+	return fox.ErrNotSupported()
 }
 
 func (tw *timeoutWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	return nil, nil, errNotSupported()
+	return nil, nil, fox.ErrNotSupported()
 }
 
-func errNotSupported() error {
-	return fmt.Errorf("%w", http.ErrNotSupported)
+func (tw *timeoutWriter) SetReadDeadline(deadline time.Time) error {
+	return fox.ErrNotSupported()
+}
+
+func (tw *timeoutWriter) SetWriteDeadline(deadline time.Time) error {
+	return fox.ErrNotSupported()
 }
