@@ -104,6 +104,8 @@ func TestMiddleware_ErrNotSupported(t *testing.T) {
 		assert.ErrorIs(t, c.Writer().FlushError(), http.ErrNotSupported)
 		_, _, hijErr := c.Writer().Hijack()
 		assert.ErrorIs(t, hijErr, http.ErrNotSupported)
+		assert.ErrorIs(t, c.Writer().SetReadDeadline(time.Now()), http.ErrNotSupported)
+		assert.ErrorIs(t, c.Writer().SetWriteDeadline(time.Now()), http.ErrNotSupported)
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/foo", nil)
