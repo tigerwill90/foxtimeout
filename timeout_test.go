@@ -112,3 +112,19 @@ func TestMiddleware_ErrNotSupported(t *testing.T) {
 	w := httptest.NewRecorder()
 	f.ServeHTTP(w, req)
 }
+
+func TestMiddleware_WithTimeoutResolver(t *testing.T) {
+	resolver := WithTimeoutResolver(TimeoutResolverFunc(func(c fox.Context) (dt time.Duration, ok bool) {
+		return 2 * time.Second, true
+	}))
+
+	f := fox.New(fox.WithMiddleware(Middleware(1*time.Millisecond, resolver)))
+	f.MustHandle(http.MethodGet, "/foo", success201response)
+
+	req := httptest.NewRequest(http.MethodGet, "/foo", nil)
+	w := httptest.NewRecorder()
+	f.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.Equal(t, fmt.Sprintf("%s\n", http.StatusText(http.StatusCreated)), w.Body.String())
+}

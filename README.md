@@ -23,6 +23,7 @@ go get -u github.com/tigerwill90/foxtimeout
 ### Feature
 - Allows for custom timeout response to better suit specific use cases.
 - Tightly integrates with the Fox ecosystem for enhanced performance and scalability.
+- Supports dynamic timeout configuration on a per-route & per-request basis using custom `Resolver`.
 
 ### Usage
 ````go
@@ -37,15 +38,34 @@ import (
 )
 
 func main() {
+	resolver := foxtimeout.TimeoutResolverFunc(func(c fox.Context) (dt time.Duration, ok bool) {
+		for annotation := range c.Route().Annotations() {
+			if annotation.Key == "timeout" {
+				dt, ok = annotation.Value.(time.Duration)
+				return dt, ok
+			}
+		}
+		return 0, false
+	})
 
 	f := fox.New(
 		fox.DefaultOptions(),
-		fox.WithMiddlewareFor(fox.RouteHandlers, foxtimeout.Middleware(50*time.Microsecond)),
+		fox.WithMiddlewareFor(
+			fox.RouteHandler,
+			foxtimeout.Middleware(
+				2*time.Second,
+				foxtimeout.WithTimeoutResolver(resolver),
+			),
+		),
 	)
+
 	f.MustHandle(http.MethodGet, "/hello/{name}", func(c fox.Context) {
-		time.Sleep(10 * time.Millisecond)
 		_ = c.String(http.StatusOK, "hello %s\n", c.Param("name"))
 	})
+	f.MustHandle(http.MethodGet, "/long_job", func(c fox.Context) {
+		time.Sleep(10 * time.Second)
+		c.Writer().WriteHeader(http.StatusOK)
+	}, fox.WithAnnotation("timeout", 15*time.Second))
 
 	log.Fatalln(http.ListenAndServe(":8080", f))
 }

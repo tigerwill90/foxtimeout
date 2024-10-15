@@ -9,6 +9,7 @@ package foxtimeout
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"fmt"
 	"github.com/tigerwill90/fox"
@@ -45,6 +46,11 @@ func New(dt time.Duration, opts ...Option) *Timeout {
 		opt.apply(cfg)
 	}
 
+	cfg.resolver = cmp.Or[Resolver](
+		cfg.resolver,
+		TimeoutResolverFunc(func(c fox.Context) (time.Duration, bool) { return dt, true }),
+	)
+
 	return &Timeout{
 		dt:  dt,
 		cfg: cfg,
@@ -67,11 +73,11 @@ func (t *Timeout) Timeout(next fox.HandlerFunc) fox.HandlerFunc {
 
 	return func(c fox.Context) {
 
-		ctx, cancel := context.WithTimeout(c.Request().Context(), t.dt)
+		ctx, cancel := t.resolveContext(c)
 		defer cancel()
 
 		for _, f := range t.cfg.filters {
-			if f(c.Request()) {
+			if f(c) {
 				next(c)
 				return
 			}
@@ -133,6 +139,14 @@ func (t *Timeout) Timeout(next fox.HandlerFunc) fox.HandlerFunc {
 		// Don't forget to release the buffer
 		bufp.Put(buf)
 	}
+}
+
+func (t *Timeout) resolveContext(c fox.Context) (ctx context.Context, cancel context.CancelFunc) {
+	dt, ok := t.cfg.resolver.Resolve(c)
+	if ok {
+		return context.WithTimeout(c.Request().Context(), dt)
+	}
+	return context.WithTimeout(c.Request().Context(), t.dt)
 }
 
 func checkWriteHeaderCode(code int) {
