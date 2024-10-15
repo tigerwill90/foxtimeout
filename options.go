@@ -7,18 +7,36 @@ package foxtimeout
 import (
 	"github.com/tigerwill90/fox"
 	"net/http"
+	"time"
 )
 
 type config struct {
-	resp    fox.HandlerFunc
-	filters []Filter
+	resp     fox.HandlerFunc
+	filters  []Filter
+	resolver Resolver
 }
 
 type Option interface {
 	apply(*config)
 }
 
-type Filter func(r *http.Request) bool
+type Filter func(c fox.Context) (skip bool)
+
+// Resolver defines the interface for resolving a timeout duration dynamically based on the request context.
+// A time.Duration is returned if a custom timeout is applicable, along with a boolean indicating if the
+// duration was resolved.
+type Resolver interface {
+	Resolve(c fox.Context) (dt time.Duration, ok bool)
+}
+
+// The TimeoutResolverFunc type is an adapter to allow the use of ordinary functions as [Resolver]. If f is a
+// function with the appropriate signature, TimeoutResolverFunc(f) is a TimeoutResolverFunc that calls f.
+type TimeoutResolverFunc func(c fox.Context) (dt time.Duration, ok bool)
+
+// Resolve calls f(c).
+func (f TimeoutResolverFunc) Resolve(c fox.Context) (dt time.Duration, ok bool) {
+	return f(c)
+}
 
 type optionFunc func(*config)
 
@@ -56,4 +74,13 @@ func WithResponse(h fox.HandlerFunc) Option {
 // DefaultTimeoutResponse sends a default 503 Service Unavailable response.
 func DefaultTimeoutResponse(c fox.Context) {
 	http.Error(c.Writer(), http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
+}
+
+// WithTimeoutResolver sets a custom Resolver to determine the timeout dynamically based on the provided fox.Context.
+// If the resolver returns false, the default timeout is applied. Keep in mind that a resolver is invoked for each request,
+// so they should be simple and efficient.
+func WithTimeoutResolver(resolver Resolver) Option {
+	return optionFunc(func(c *config) {
+		c.resolver = resolver
+	})
 }
