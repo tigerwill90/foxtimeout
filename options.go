@@ -11,9 +11,9 @@ import (
 )
 
 type config struct {
+	resolver Resolver
 	resp     fox.HandlerFunc
 	filters  []Filter
-	resolver Resolver
 }
 
 type Option interface {
@@ -22,8 +22,8 @@ type Option interface {
 
 type Filter func(c fox.Context) (skip bool)
 
-// Resolver defines the interface for resolving a timeout duration dynamically based on the request context.
-// A time.Duration is returned if a custom timeout is applicable, along with a boolean indicating if the
+// Resolver defines the interface for resolving a timeout duration dynamically based on [fox.Context].
+// A [time.Duration] is returned if a custom timeout is applicable, along with a boolean indicating if the
 // duration was resolved.
 type Resolver interface {
 	Resolve(c fox.Context) (dt time.Duration, ok bool)
@@ -62,7 +62,7 @@ func WithFilter(f ...Filter) Option {
 
 // WithResponse sets a custom response handler function for the middleware.
 // This function will be invoked when a timeout occurs, allowing for custom responses
-// to be sent back to the client. If not set, the middleware use DefaultTimeoutResponse.
+// to be sent back to the client. If not set, the middleware use [DefaultTimeoutResponse].
 func WithResponse(h fox.HandlerFunc) Option {
 	return optionFunc(func(c *config) {
 		if h != nil {
@@ -76,7 +76,7 @@ func DefaultTimeoutResponse(c fox.Context) {
 	http.Error(c.Writer(), http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
 }
 
-// WithTimeoutResolver sets a custom Resolver to determine the timeout dynamically based on the provided fox.Context.
+// WithTimeoutResolver sets a custom [Resolver] to determine the timeout dynamically based on [fox.Context].
 // If the resolver returns false, the default timeout is applied. Keep in mind that a resolver is invoked for each request,
 // so they should be simple and efficient.
 func WithTimeoutResolver(resolver Resolver) Option {
