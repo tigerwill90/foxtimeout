@@ -136,6 +136,7 @@ func (t *Timeout) Timeout(next fox.HandlerFunc) fox.HandlerFunc {
 			default:
 				tw.err = err
 			}
+			_ = w.SetReadDeadline(time.Now())
 			t.cfg.resp(c)
 		}
 		// Don't forget to release the buffer
