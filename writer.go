@@ -132,10 +132,14 @@ func (tw *timeoutWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return nil, nil, fox.ErrNotSupported()
 }
 
-func (tw *timeoutWriter) SetReadDeadline(deadline time.Time) error {
+func (tw *timeoutWriter) SetReadDeadline(_ time.Time) error {
 	return fox.ErrNotSupported()
 }
 
-func (tw *timeoutWriter) SetWriteDeadline(deadline time.Time) error {
+func (tw *timeoutWriter) SetWriteDeadline(_ time.Time) error {
+	return fox.ErrNotSupported()
+}
+
+func (tw *timeoutWriter) EnableFullDuplex() error {
 	return fox.ErrNotSupported()
 }
