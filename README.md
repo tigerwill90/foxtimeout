@@ -30,6 +30,7 @@ go get -u github.com/tigerwill90/foxtimeout
 package main
 
 import (
+	"errors"
 	"github.com/tigerwill90/fox"
 	"github.com/tigerwill90/foxtimeout"
 	"log"
@@ -38,35 +39,23 @@ import (
 )
 
 func main() {
-	resolver := foxtimeout.TimeoutResolverFunc(func(c fox.Context) (dt time.Duration, ok bool) {
-		for annotation := range c.Route().Annotations() {
-			if annotation.Key == "timeout" {
-				dt, ok = annotation.Value.(time.Duration)
-				return dt, ok
-			}
-		}
-		return 0, false
-	})
-
-	f := fox.New(
+	f, err := fox.New(
 		fox.DefaultOptions(),
 		fox.WithMiddlewareFor(
 			fox.RouteHandler,
-			foxtimeout.Middleware(
-				2*time.Second,
-				foxtimeout.WithTimeoutResolver(resolver),
-			),
+			foxtimeout.Middleware(2*time.Second),
 		),
 	)
+	if err != nil {
+		panic(err)
+	}
 
 	f.MustHandle(http.MethodGet, "/hello/{name}", func(c fox.Context) {
 		_ = c.String(http.StatusOK, "hello %s\n", c.Param("name"))
 	})
-	f.MustHandle(http.MethodGet, "/long_job", func(c fox.Context) {
-		time.Sleep(10 * time.Second)
-		c.Writer().WriteHeader(http.StatusOK)
-	}, fox.WithAnnotation("timeout", 15*time.Second))
 
-	log.Fatalln(http.ListenAndServe(":8080", f))
+	if err = http.ListenAndServe(":8080", f); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatalln(err)
+	}
 }
 ````

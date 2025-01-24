@@ -7,6 +7,7 @@ package foxtimeout
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/tigerwill90/fox"
 	"io"
 	"log/slog"
@@ -22,7 +23,8 @@ func success201response(c fox.Context) {
 }
 
 func TestMiddleware_WithTimeout(t *testing.T) {
-	f := fox.New(fox.WithMiddleware(Middleware(50 * time.Microsecond)))
+	f, err := fox.New(fox.WithMiddleware(Middleware(50 * time.Microsecond)))
+	require.NoError(t, err)
 	f.MustHandle(http.MethodGet, "/foo", success201response)
 
 	req := httptest.NewRequest(http.MethodGet, "/foo", nil)
@@ -34,7 +36,8 @@ func TestMiddleware_WithTimeout(t *testing.T) {
 }
 
 func TestMiddleware_WithoutTimeout(t *testing.T) {
-	f := fox.New(fox.WithMiddleware(Middleware(1 * time.Second)))
+	f, err := fox.New(fox.WithMiddleware(Middleware(1 * time.Second)))
+	require.NoError(t, err)
 	f.MustHandle(http.MethodGet, "/foo", success201response)
 
 	req := httptest.NewRequest(http.MethodGet, "/foo", nil)
@@ -50,7 +53,8 @@ func timeoutResponse(c fox.Context) {
 }
 
 func TestMiddleware_WithResponse(t *testing.T) {
-	f := fox.New(fox.WithMiddleware(Middleware(50*time.Microsecond, WithResponse(timeoutResponse))))
+	f, err := fox.New(fox.WithMiddleware(Middleware(50*time.Microsecond, WithResponse(timeoutResponse))))
+	require.NoError(t, err)
 	f.MustHandle(http.MethodGet, "/foo", success201response)
 
 	req := httptest.NewRequest(http.MethodGet, "/foo", nil)
@@ -66,7 +70,7 @@ func panicResponse(c fox.Context) {
 }
 
 func TestMiddleware_WithPanic(t *testing.T) {
-	f := fox.New(
+	f, err := fox.New(
 		fox.WithMiddleware(
 			fox.CustomRecoveryWithLogHandler(slog.NewTextHandler(io.Discard, nil), func(c fox.Context, err any) {
 				if !c.Writer().Written() {
@@ -76,6 +80,7 @@ func TestMiddleware_WithPanic(t *testing.T) {
 			Middleware(1*time.Second, WithResponse(timeoutResponse)),
 		),
 	)
+	require.NoError(t, err)
 	f.MustHandle(http.MethodGet, "/foo", panicResponse)
 
 	req := httptest.NewRequest(http.MethodGet, "/foo", nil)
@@ -87,7 +92,8 @@ func TestMiddleware_WithPanic(t *testing.T) {
 }
 
 func TestMiddleware_NoTimeout(t *testing.T) {
-	f := fox.New(fox.WithMiddleware(Middleware(0)))
+	f, err := fox.New(fox.WithMiddleware(Middleware(0)))
+	require.NoError(t, err)
 	f.MustHandle(http.MethodGet, "/foo", success201response)
 
 	req := httptest.NewRequest(http.MethodGet, "/foo", nil)
@@ -99,7 +105,8 @@ func TestMiddleware_NoTimeout(t *testing.T) {
 }
 
 func TestMiddleware_ErrNotSupported(t *testing.T) {
-	f := fox.New(fox.WithMiddleware(Middleware(1 * time.Second)))
+	f, err := fox.New(fox.WithMiddleware(Middleware(1 * time.Second)))
+	require.NoError(t, err)
 	f.MustHandle(http.MethodGet, "/foo", func(c fox.Context) {
 		assert.ErrorIs(t, c.Writer().FlushError(), http.ErrNotSupported)
 		_, _, hijErr := c.Writer().Hijack()
@@ -118,7 +125,8 @@ func TestMiddleware_WithTimeoutResolver(t *testing.T) {
 		return 2 * time.Second, true
 	}))
 
-	f := fox.New(fox.WithMiddleware(Middleware(1*time.Millisecond, resolver)))
+	f, err := fox.New(fox.WithMiddleware(Middleware(1*time.Millisecond, resolver)))
+	require.NoError(t, err)
 	f.MustHandle(http.MethodGet, "/foo", success201response)
 
 	req := httptest.NewRequest(http.MethodGet, "/foo", nil)
@@ -127,4 +135,36 @@ func TestMiddleware_WithTimeoutResolver(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.Equal(t, fmt.Sprintf("%s\n", http.StatusText(http.StatusCreated)), w.Body.String())
+}
+
+func ExampleWithTimeoutResolver() {
+	type key struct{}
+	annotKey := key{}
+
+	resolver := TimeoutResolverFunc(func(c fox.Context) (dt time.Duration, ok bool) {
+		v := c.Route().Annotation(annotKey)
+		if v != nil {
+			dt, ok = v.(time.Duration)
+			return
+		}
+		return 0, false
+	})
+
+	f, err := fox.New(
+		fox.WithMiddleware(Middleware(
+			2*time.Second,
+			WithTimeoutResolver(resolver),
+		)),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	f.MustHandle(http.MethodGet, "/hello/{name}", func(c fox.Context) {
+		_ = c.String(http.StatusOK, "hello %s\n", c.Param("name"))
+	})
+	f.MustHandle(http.MethodGet, "/long", func(c fox.Context) {
+		time.Sleep(10 * time.Second)
+		c.Writer().WriteHeader(http.StatusOK)
+	}, fox.WithAnnotation(annotKey, 12*time.Second))
 }
