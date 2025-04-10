@@ -91,7 +91,9 @@ func (t *Timeout) Timeout(next fox.HandlerFunc) fox.HandlerFunc {
 
 		w := c.Writer()
 		buf := bufp.Get().(*bytes.Buffer)
+		defer bufp.Put(buf)
 		buf.Reset()
+
 		tw := &timeoutWriter{
 			w:       w,
 			headers: make(http.Header),
@@ -115,8 +117,6 @@ func (t *Timeout) Timeout(next fox.HandlerFunc) fox.HandlerFunc {
 
 		select {
 		case p := <-panicChan:
-			// Don't forget to release the buffer
-			bufp.Put(buf)
 			panic(p)
 		case <-done:
 			tw.mu.Lock()
@@ -139,8 +139,6 @@ func (t *Timeout) Timeout(next fox.HandlerFunc) fox.HandlerFunc {
 			_ = w.SetReadDeadline(time.Now())
 			t.cfg.resp(c)
 		}
-		// Don't forget to release the buffer
-		bufp.Put(buf)
 	}
 }
 
