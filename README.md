@@ -31,18 +31,18 @@ package main
 
 import (
 	"errors"
-	"github.com/tigerwill90/fox"
-	"github.com/tigerwill90/foxtimeout"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/tigerwill90/fox"
+	"github.com/tigerwill90/foxtimeout"
 )
 
 func main() {
 	f, err := fox.New(
 		fox.DefaultOptions(),
-		fox.WithMiddlewareFor(
-			fox.RouteHandler,
+		fox.WithMiddleware(
 			foxtimeout.Middleware(2*time.Second),
 		),
 	)
@@ -53,6 +53,8 @@ func main() {
 	f.MustHandle(http.MethodGet, "/hello/{name}", func(c fox.Context) {
 		_ = c.String(http.StatusOK, "hello %s\n", c.Param("name"))
 	})
+	f.MustHandle(http.MethodGet, "/download/{filepath}", DownloadHandler, foxtimeout.None())
+	f.MustHandle(http.MethodGet, "/workflow/{id}/start", WorkflowHandler, foxtimeout.After(15*time.Second))
 
 	if err = http.ListenAndServe(":8080", f); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalln(err)

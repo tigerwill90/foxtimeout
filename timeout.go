@@ -34,10 +34,17 @@ type Timeout struct {
 	dt  time.Duration
 }
 
-// Middleware returns a [fox.MiddlewareFunc] with a specified timeout and options.
-// This middleware function, when used, will ensure HTTP handlers don't exceed the given timeout duration.
+// Middleware returns a [fox.MiddlewareFunc] that runs handlers with the given time limit.
+//
+// The middleware calls the next handler to handle each request, but if a call runs for longer than its time limit,
+// the handler responds with a 503 Service Unavailable error and the given message in its body (if a custom response
+// handler is not configured). After such a timeout, writes by the handler to its ResponseWriter will return [http.ErrHandlerTimeout].
+//
+// The timeout middleware supports the [http.Pusher] interface but does not support the [http.Hijacker] or [http.Flusher] interfaces.
+//
+// Individual routes can override the timeout duration using the [After] option or disable it entirely using [None]:
 func Middleware(dt time.Duration, opts ...Option) fox.MiddlewareFunc {
-	return create(dt, opts...).Timeout
+	return create(dt, opts...).run
 }
 
 func create(dt time.Duration, opts ...Option) *Timeout {
@@ -52,14 +59,8 @@ func create(dt time.Duration, opts ...Option) *Timeout {
 	}
 }
 
-// Timeout returns a [fox.HandlerFunc] that runs next with the given time limit.
-//
-// The new handler calls next to handle each request, but if a call runs for longer than its time limit,
-// the handler responds with a 503 Service Unavailable error and the given message in its body (if a custom response
-// handler is not configured). After such a timeout, writes by next to its ResponseWriter will return [http.ErrHandlerTimeout].
-//
-// Timeout supports the [http.Pusher] interface but does not support the [http.Hijacker] or [http.Flusher] interfaces.
-func (t *Timeout) Timeout(next fox.HandlerFunc) fox.HandlerFunc {
+// run is the internal handler that applies the timeout logic.
+func (t *Timeout) run(next fox.HandlerFunc) fox.HandlerFunc {
 	return func(c fox.Context) {
 
 		for _, f := range t.cfg.filters {
