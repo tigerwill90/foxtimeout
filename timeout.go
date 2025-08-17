@@ -12,12 +12,13 @@ import (
 	"cmp"
 	"context"
 	"fmt"
-	"github.com/tigerwill90/fox"
 	"net/http"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/tigerwill90/fox"
 )
 
 var (

@@ -5,9 +5,10 @@
 package foxtimeout
 
 import (
-	"github.com/tigerwill90/fox"
 	"net/http"
 	"time"
+
+	"github.com/tigerwill90/fox"
 )
 
 type config struct {

@@ -10,7 +10,6 @@ package foxtimeout
 import (
 	"bufio"
 	"bytes"
-	"github.com/tigerwill90/fox"
 	"io"
 	"log"
 	"net"
@@ -18,6 +17,8 @@ import (
 	"path"
 	"sync"
 	"time"
+
+	"github.com/tigerwill90/fox"
 )
 
 var _ fox.ResponseWriter = (*timeoutWriter)(nil)
