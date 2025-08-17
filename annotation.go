@@ -23,9 +23,11 @@ func None() fox.RouteOption {
 }
 
 func unwrapRouteTimeout(r *fox.Route) (time.Duration, bool) {
-	dt := r.Annotation(ctxKey)
-	if dt != nil {
-		return dt.(time.Duration), true
+	if r != nil {
+		dt := r.Annotation(ctxKey)
+		if dt != nil {
+			return dt.(time.Duration), true
+		}
 	}
 	return 0, false
 }
