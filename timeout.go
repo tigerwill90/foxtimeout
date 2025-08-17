@@ -137,7 +137,9 @@ func (t *Timeout) Timeout(next fox.HandlerFunc) fox.HandlerFunc {
 			default:
 				tw.err = err
 			}
-			_ = w.SetReadDeadline(time.Now())
+			if t.cfg.enableAbortRequestBody {
+				_ = w.SetReadDeadline(time.Now())
+			}
 			t.cfg.resp(c)
 		}
 	}

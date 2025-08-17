@@ -12,9 +12,10 @@ import (
 )
 
 type config struct {
-	resolver Resolver
-	resp     fox.HandlerFunc
-	filters  []Filter
+	resolver               Resolver
+	resp                   fox.HandlerFunc
+	filters                []Filter
+	enableAbortRequestBody bool
 }
 
 type Option interface {
@@ -83,5 +84,14 @@ func DefaultTimeoutResponse(c fox.Context) {
 func WithTimeoutResolver(resolver Resolver) Option {
 	return optionFunc(func(c *config) {
 		c.resolver = resolver
+	})
+}
+
+// WithAbortRequestBody controls whether to set a read deadline on the request
+// when a timeout occurs. When enabled, subsequent reads from the request body
+// will immediately fail after a timeout.
+func WithAbortRequestBody(enable bool) Option {
+	return optionFunc(func(c *config) {
+		c.enableAbortRequestBody = enable
 	})
 }
