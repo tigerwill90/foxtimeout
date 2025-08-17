@@ -119,7 +119,7 @@ func (tw *timeoutWriter) WriteHeader(code int) {
 func (tw *timeoutWriter) ReadFrom(src io.Reader) (n int64, err error) {
 	bufPtr := copyBufPool.Get().(*[]byte)
 	buf := *bufPtr
-	// onlyWrite hide "ReadFrom" from w.
+
 	n, err = io.CopyBuffer(onlyWrite{tw}, src, buf)
 	copyBufPool.Put(bufPtr)
 	return
