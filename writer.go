@@ -10,7 +10,6 @@ package foxtimeout
 import (
 	"bufio"
 	"bytes"
-	"github.com/tigerwill90/fox"
 	"io"
 	"log"
 	"net"
@@ -18,6 +17,8 @@ import (
 	"path"
 	"sync"
 	"time"
+
+	"github.com/tigerwill90/fox"
 )
 
 var _ fox.ResponseWriter = (*timeoutWriter)(nil)
@@ -118,7 +119,7 @@ func (tw *timeoutWriter) WriteHeader(code int) {
 func (tw *timeoutWriter) ReadFrom(src io.Reader) (n int64, err error) {
 	bufPtr := copyBufPool.Get().(*[]byte)
 	buf := *bufPtr
-	// onlyWrite hide "ReadFrom" from w.
+
 	n, err = io.CopyBuffer(onlyWrite{tw}, src, buf)
 	copyBufPool.Put(bufPtr)
 	return
